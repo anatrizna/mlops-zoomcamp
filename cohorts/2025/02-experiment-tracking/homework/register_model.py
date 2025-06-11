@@ -30,7 +30,10 @@ def train_and_log_model(data_path, params):
     with mlflow.start_run():
         new_params = {}
         for param in RF_PARAMS:
-            new_params[param] = int(params[param])
+            if param in params:
+                new_params[param] = int(params[param])
+            else:
+                raise ValueError(f"Missing parameter: {param} in params: {params}")
 
         rf = RandomForestRegressor(**new_params)
         rf.fit(X_train, y_train)
@@ -66,16 +69,24 @@ def run_register_model(data_path: str, top_n: int):
         max_results=top_n,
         order_by=["metrics.rmse ASC"]
     )
+
     for run in runs:
         train_and_log_model(data_path=data_path, params=run.data.params)
 
     # Select the model with the lowest test RMSE
     experiment = client.get_experiment_by_name(EXPERIMENT_NAME)
-    # best_run = client.search_runs( ...  )[0]
+    best_run = client.search_runs(
+        experiment_ids=[experiment.experiment_id],
+        run_view_type=ViewType.ACTIVE_ONLY,
+        max_results=1,
+        order_by=["metrics.test_rmse ASC"]
+    )[0]
 
     # Register the best model
-    # mlflow.register_model( ... )
+    model_uri = f"runs:/{best_run.info.run_id}/model"
+    model_name = "awesome-model"
 
+    mlflow.register_model(model_uri=model_uri, name=model_name)
 
 if __name__ == '__main__':
     run_register_model()
