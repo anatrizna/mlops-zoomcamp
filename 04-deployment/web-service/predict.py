@@ -3,7 +3,7 @@ import pickle
 from flask import Flask, request, jsonify
 
 with open('lin_reg.bin', 'rb') as f_in:
-    (dv, model) = pickle.load(f_in)
+    (dictionary_vectoriser, model) = pickle.load(f_in)
 
 
 def prepare_features(ride):
@@ -12,9 +12,8 @@ def prepare_features(ride):
     features['trip_distance'] = ride['trip_distance']
     return features
 
-
 def predict(features):
-    X = dv.transform(features)
+    X = dictionary_vectoriser.transform(features)
     preds = model.predict(X)
     return float(preds[0])
 
@@ -22,7 +21,7 @@ def predict(features):
 app = Flask('duration-prediction')
 
 
-@app.route('/predict', methods=['POST'])
+@app.route('/predict', methods=['POST']) #decorator
 def predict_endpoint():
     ride = request.get_json()
 
@@ -37,4 +36,4 @@ def predict_endpoint():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0', port=9696)
+    app.run(debug=True, host='0.0.0.0', port=9696) # only used for development services. use gunicorn --bind=0.0.0.0:9696 predict:app
